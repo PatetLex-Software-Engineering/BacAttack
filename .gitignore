@@ -1,4 +1,4 @@
-/Library
-/Logs
-/obj
-/Packages
+Library/
+Logs/
+obj/
+.vscode/

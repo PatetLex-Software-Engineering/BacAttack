@@ -20,12 +20,19 @@ public class ProximitySpawn : MonoBehaviour
 
     private int radius;
 
-    private List<GameObject> spawnedObjects;
+    private List<Spawnable> spawnedObjects;
+
+    public List<Spawnable> Track() {
+        return spawnedObjects;
+    }
+
+    void Awake() {
+        this.spawnedObjects = new List<Spawnable>();
+    }
 
     void Start()
     {
         this.radius = Mathf.FloorToInt((float) terrain.chunkSize * (0.3F));
-        this.spawnedObjects = new List<GameObject>();
         this.chunkLoader = GetComponent<ChunkLoader>();
     }
 
@@ -58,6 +65,7 @@ public class ProximitySpawn : MonoBehaviour
                         iteration += weight;
                         if (targetWeight < iteration) {
                             GameObject clone = Instantiate<GameObject>(spawns[i].entity.gameObject);
+                            clone.name = spawns[i].entity.gameObject.name;
 
                             float r = Random.Range(0F, 1F);
                             float scale = Mathf.Lerp(spawns[i].entity.scaleRange.x, spawns[i].entity.scaleRange.y, r);
@@ -69,14 +77,14 @@ public class ProximitySpawn : MonoBehaviour
 
                             clone.SetActive(true);
                             clone.transform.position = Pull(chunk);
-                            spawnedObjects.Add(clone);
+                            spawnedObjects.Add(spawnable);
                             break;
                         }
                     }
                 }
             }
         } else {
-            spawnedObjects.RemoveAll(obj => obj == null || !obj.activeSelf);
+            spawnedObjects.RemoveAll(obj => obj == null || obj.gameObject == null || !obj.gameObject.activeSelf);
         }
     }
 
@@ -87,5 +95,17 @@ public class ProximitySpawn : MonoBehaviour
         Vector3 part = rand * Random.Range(0, radius);
         Vector3Int a = new Vector3Int(Mathf.CeilToInt(part.x), Mathf.CeilToInt(part.y), Mathf.CeilToInt(part.z));
         return r;
+    }
+
+    public void Instance(Spawnable s, Vector3 pos, float scale, float speed, float atp) {
+        GameObject clone = Instantiate<GameObject>(s.gameObject);
+
+        Spawnable spawnable = clone.GetComponent<Spawnable>();
+        clone.transform.localScale = new Vector3(scale, scale, scale);
+        spawnable.Instance(scale, speed, atp);
+
+        clone.SetActive(true);
+        clone.transform.position = pos;
+        spawnedObjects.Add(spawnable);
     }
 }

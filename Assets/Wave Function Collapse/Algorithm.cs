@@ -32,11 +32,27 @@ public class Algorithm {
         }
     }
 
+    public Algorithm(int seed, Dictionary<Vector2Int, Tile> sample, List<Tile> tiles) {
+        this.sample = sample;
+        this.tiles = tiles;
+        this.rand = new System.Random(seed);
+        this.lowerBound = new Vector2Int(0,0);
+        this.upperBound = new Vector2Int(0,0);
+        foreach(Vector2Int coord in sample.Keys) {
+            if (coord.x < lowerBound.x || coord.y  < lowerBound.y) {
+                lowerBound = new Vector2Int(coord.x < lowerBound.x ? coord.x : lowerBound.x, coord.y < lowerBound.y ? coord.y : lowerBound.y);
+            }
+            if (coord.x > upperBound.x || coord.y > upperBound.y) {
+                upperBound = new Vector2Int(coord.x > upperBound.x ? coord.x : upperBound.x, coord.y > upperBound.y ? coord.y : upperBound.y);
+            }
+        }
+    } 
+
     private Vector2Int lowerBound = new Vector2Int(int.MaxValue, int.MaxValue);
     private Vector2Int upperBound = new Vector2Int(int.MinValue, int.MinValue);
 
-    public bool Contains(int x, int y) {
-        return sample.ContainsKey(new Vector2Int(x,y));
+    public Dictionary<Vector2Int, Tile> Sample() {
+        return sample;
     }
 
     public Tile Collapse(int x, int y) {

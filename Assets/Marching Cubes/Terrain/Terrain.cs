@@ -37,10 +37,27 @@ public class Terrain : MonoBehaviour
     void Start()
     {
         chunks = new Dictionary<Vector2Int, Chunk>();
+        Save save = Save.Load();
+        if (save != null) {
+            seed = save.seed;
+            Random.InitState(seed);
 
-        if (waves != null && waves.Count > 0) {
-            // Algorithm.VERBOSE = true;
-            waveFunction = new Algorithm(seed, waves, waves[0]);
+            Dictionary<Vector2Int, Tile> tiles = new Dictionary<Vector2Int, Tile>();
+            foreach (Tile tile in waves) {
+                foreach (Save.Wave wave in save.tiles) {
+                    string n = wave.name;
+                    if (tile.name == n) {
+                        tiles.Add(wave.coord, tile);
+                    }
+                }
+            }
+            waveFunction = new Algorithm(seed, tiles, waves);
+
+        } else {
+            if (waves != null && waves.Count > 0) {
+                // Algorithm.VERBOSE = true;
+                waveFunction = new Algorithm(seed, waves, waves[0]);
+            }
         }
     }
 
@@ -64,23 +81,23 @@ public class Terrain : MonoBehaviour
                     foreach (Chunk chunk in chunks.Values) {
                         if (chunk.x == x && chunk.y == y) {
                             remove.Remove(chunk);
-                            if (chunk.gameObject != null) {
-                                chunk.gameObject.SetActive(true);
-                            }
                             present = true;
                         }
                     }
                     if (!present) {
                         Chunk chunk = new Chunk(this, x, y);
                         chunk.Generate(chunkLoader);
-                        chunks.Add(new Vector2Int(x, y), chunk);
+                        if (!chunks.ContainsKey(new Vector2Int(x,y))) {
+                            chunks.Add(new Vector2Int(x,y), chunk);
+                        }
                     }
                 }
             }
         }
         foreach (Chunk chunk in remove) {
             if (chunk.gameObject != null) {
-                chunk.gameObject.SetActive(false);
+                Destroy(chunk.gameObject);
+                chunks.Remove(new Vector2Int(chunk.x, chunk.y));
             }
         }
     }
@@ -179,7 +196,11 @@ public class Terrain : MonoBehaviour
         }
 
         public static bool Contains(Terrain terrain, int x, int y) {
-            return terrain.waveFunction.Contains(x, y);
+            return terrain.waveFunction.Sample().ContainsKey(new Vector2Int(x, y));
         }
+
+        public static Dictionary<Vector2Int, Tile> Sample(Terrain terrain) {
+            return terrain.waveFunction.Sample();
+        } 
     }
 }

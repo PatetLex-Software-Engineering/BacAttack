@@ -16,6 +16,7 @@ public class GameMenu : MonoBehaviour
     }
 
     public void NewGame() {
+        Save.save = "game";
         SceneManager.LoadSceneAsync("Game");
     }
 

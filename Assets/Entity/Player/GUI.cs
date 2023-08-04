@@ -6,10 +6,11 @@ using UnityEngine.UI;
 public class GUI : MonoBehaviour
 {
     [Header("Canvas")]
-    public Canvas current;
-    public Canvas loading;
-    public Canvas hud;
-    public Canvas death;
+    public GameObject current;
+    public GameObject loading;
+    public GameObject hud;
+    public GameObject death;
+    public GameObject menu;
 
     [Header("UI")]
     public Image health;
@@ -27,23 +28,22 @@ public class GUI : MonoBehaviour
         Cursor.visible = current != null;
         Cursor.lockState = current == null ? CursorLockMode.Locked : CursorLockMode.None;
 
-        hud.enabled = current == null;
+        hud.SetActive(current == null);
         UpdateImage(health, statistics.Health());
         UpdateImage(atp, statistics.ATP());
 
         if (current == loading) {
             ChunkLoader loader = gameObject.GetComponent<ChunkLoader>();
-            List<Chunk> chunks = loader.Vicinity();
-            if (chunks.Count > 0) {
-                bool flag = true;
-                foreach (Chunk chunk in chunks) {
-                    if (chunk.gameObject == null) {
-                        flag = false;
-                    }
+            List<Vector2Int> coords = loader.Coordinates();
+            bool flag = true;
+            foreach (Vector2Int coord in coords) {
+                Chunk chunk = loader.terrain.ChunkAt(coord);
+                if (chunk == null || chunk.gameObject == null) {
+                    flag = false;
                 }
-                if (flag) {
-                    Close();
-                }
+            }
+            if (flag) {
+                Close();
             }
         }
     }
@@ -58,16 +58,16 @@ public class GUI : MonoBehaviour
         image.fillAmount = statistic.value / statistic.CalculatedValue();
     } 
 
-    public void SetMenu(Canvas menu) {
+    public void SetMenu(GameObject menu) {
         if (current == null) {
             current = menu;
-            current.enabled = true;
+            current.SetActive(true);
         }
     }
 
     public void Close() {
         if (this.current != null) {
-            this.current.enabled = false;
+            this.current.SetActive(false);
             current = null;
         }
     }

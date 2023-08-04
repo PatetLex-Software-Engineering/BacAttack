@@ -9,8 +9,6 @@ public class Chunk
 {
     [Header("Component")]
     public GameObject gameObject;
-    public Mesh mesh;
-    public MeshCollider meshCollider;
 
     [Header("Scale")]
     public int tileSqWidth = 16;
@@ -204,24 +202,56 @@ public class Chunk
     void GenerateVertices() {
         List<Vector3> verts = new List<Vector3>();
         List<int> ind = new List<int>();
-        List<Vector2> u = new List<Vector2>();
         for (int i = 0; i < terrain.chunkSize; i++) {
             for (int j = 0; j < terrain.chunkSize; j++) {
                 for (int k = 0; k < terrain.chunkSize; k++) {
-                	MarchCube(new Vector3Int(i, k, j), verts, ind, u);
+                	MarchCube(new Vector3Int(i, k, j), verts, ind);
                 }
             }
         }
-        vertices = verts;
+		uvs = GenerateUVs(ind, verts);
         indices = ind;
-        uvs = u;
+		vertices = verts;
     }
+
+	List<Vector2> GenerateUVs(List<int> ind, List<Vector3> verts) {
+		Vector2[] u = new Vector2[verts.Count];
+		for (int i = 0; i < ind.Count - 2; i += 3) {
+			Vector3 norm = Vector3.Cross(
+				verts[ind[i + 1]] - verts[ind[i + 0]],
+				verts[ind[i + 1]] - verts[ind[i + 2]]).normalized;
+		
+			float dotX = Mathf.Abs(Vector3.Dot(norm, Vector3.right));
+			float dotY = Mathf.Abs(Vector3.Dot(norm, Vector3.up));
+			float dotZ = Mathf.Abs(Vector3.Dot(norm, Vector3.forward));
+			if (dotX > dotY && dotX > dotZ) {
+				for (int j = 0; j < 3; j++) {
+					u[ind[i + j]] = new Vector2(verts[ind[i + j]].z, verts[ind[i + j]].y);
+				}
+			}
+			else {
+				if (dotY > dotX && dotY > dotZ) {
+					for (int j = 0; j < 3; j++) {
+						u[ind[i + j]] = new Vector2(verts[ind[i + j]].x, verts[ind[i + j]].z);
+					}
+				}
+				else {
+					for (int j = 0; j < 3; j++) {
+						u[ind[i + j]] = new Vector2(verts[ind[i + j]].x, verts[ind[i + j]].y);
+					}
+				}
+			}
+		}
+		return new List<Vector2>(u);
+	}
 
     public void Update() {
         if (vertices != null) {
-			if (mesh == null) {
+			if (gameObject == null) {
             	BuildMesh();
 			} else {
+				MeshCollider meshCollider = gameObject.GetComponent<MeshCollider>();
+				Mesh mesh = meshCollider.sharedMesh;
 				mesh.vertices = vertices.ToArray();
 				mesh.triangles = indices.ToArray();
 				mesh.uv = uvs.ToArray();
@@ -238,10 +268,10 @@ public class Chunk
     }
 
     void BuildMesh() {
-        mesh = new Mesh();
+        Mesh mesh = new Mesh();
         mesh.vertices = vertices.ToArray();
         mesh.triangles = indices.ToArray();
-        //mesh.uv = uvs.ToArray();
+        mesh.uv = uvs.ToArray();
         mesh.RecalculateNormals();
 
         gameObject = new GameObject("Chunk [" + x + ", " + y + "]");
@@ -255,7 +285,7 @@ public class Chunk
         meshRenderer.material = tile.material;
         //meshRenderer.material.SetTexture("_TexArr", terrain.TextureArray());
 
-        meshCollider = gameObject.AddComponent<MeshCollider>();
+        MeshCollider meshCollider = gameObject.AddComponent<MeshCollider>();
         meshCollider.sharedMaterial = terrain.physicsMaterial;
         meshCollider.sharedMesh = mesh;
     }
@@ -269,7 +299,7 @@ public class Chunk
 	}
 
 
-    void MarchCube(Vector3Int position, List<Vector3> verts, List<int> ind, List<Vector2> u) {
+    void MarchCube(Vector3Int position, List<Vector3> verts, List<int> ind) {
 		float[] cube = new float[8];
 		for (int i = 0; i < 8; i++) {
 			cube[i] = Point(position + CornerTable[i]);
@@ -301,7 +331,7 @@ public class Chunk
 					difference = (0.5F - vert1Sample) / difference;
 				}
 				vertPosition = vert1 + ((vert2 - vert1) * difference);
-				ind.Add(VerticeForIndice(vertPosition, position, verts, u));
+				ind.Add(VerticeForIndice(vertPosition, position, verts));
                 edgeIndex++;
             }
         }
@@ -319,7 +349,7 @@ public class Chunk
 
     }
 
-	int VerticeForIndice(Vector3 vert, Vector3Int point, List<Vector3> verts, List<Vector2> u) {
+	int VerticeForIndice(Vector3 vert, Vector3Int point, List<Vector3> verts) {
 		vert = vert + new Vector3(x * terrain.chunkSize, 0, y * terrain.chunkSize);
 		for (int i = 0; i < verts.Count; i++) {
 			if (verts[i] == vert) {
@@ -327,7 +357,6 @@ public class Chunk
 			}
 		}
 		verts.Add(vert);
-		//u.Add(new Vector2(Voxel(point).TextureID(), 0));
 		return verts.Count - 1;
 	}
 

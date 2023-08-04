@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 public class Statistics : MonoBehaviour
 {
@@ -16,11 +17,20 @@ public class Statistics : MonoBehaviour
     private Statistic speed;
     public Statistic Speed() { return speed; }
 
-    void Start()
-    {
+    public void Instance(Regenerable health, Regenerable atp, Statistic speed) {
+        this.health = health;
+        this.atp = atp;
+        this.speed = speed;
+    }
+
+    void Awake() {
         health = new Regenerable(baseHealth.x, baseHealth.y, baseHealth.z);
         atp = new Regenerable(baseATP.x, baseATP.y, baseATP.z);
         speed = new Statistic(baseSpeed);
+    }
+
+    void Start()
+    {
     }
 
     void FixedUpdate() {
@@ -39,6 +49,7 @@ public class Statistics : MonoBehaviour
         statistic.Calculate();
     }
 
+    [Serializable]
     public class Regenerable : Statistic {
         public Statistic regeneration;
         public float maxValue;
@@ -53,6 +64,7 @@ public class Statistics : MonoBehaviour
         }
     }
 
+    [Serializable]
     public class Statistic {
         public List<Modifier> modifiers;
         public float value;
@@ -103,6 +115,7 @@ public class Statistics : MonoBehaviour
         }
     }
 
+    [Serializable]
     public class Modifier {
         public float value;
         public Operator op;
@@ -112,6 +125,7 @@ public class Statistics : MonoBehaviour
             this.op = op;
         }
 
+        [Serializable]
         public enum Operator {
             ADDITION, MULTIPLY, SET
         }

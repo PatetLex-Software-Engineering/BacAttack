@@ -6,6 +6,7 @@ public class AI : MonoBehaviour
 {
 
     [Header("Components")]
+    public Terrain terrain;
     public Collider hitBox;
     public LayerMask layer;
 
@@ -52,6 +53,16 @@ public class AI : MonoBehaviour
 
     void FixedUpdate() {
         time += 0.02F;
+
+        if (terrain.LoadedChunks().Count == 0) {
+            return;
+        }
+        foreach (Chunk chunk in terrain.LoadedChunks()) {
+            if (chunk.gameObject == null) {
+                return;
+            }
+        }
+
         for (int i = 0; i <= 10; i++) {
             if ((activePriority == -1 || i <= activePriority) && goals.ContainsKey(i)) {
                 Goal goal = goals[i];

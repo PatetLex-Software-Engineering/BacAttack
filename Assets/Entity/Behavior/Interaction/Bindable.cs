@@ -12,7 +12,11 @@ public class Bindable : Interactable {
         Spawnable spawnable = gameObject.GetComponent<Spawnable>();
         Statistics statistics = player.gameObject.GetComponent<Statistics>();
         player.transform.position = gameObject.transform.position;
-        statistics.ATP().value += spawnable.ATP();
+        float val = statistics.ATP().value + spawnable.ATP();
+        if (val > statistics.ATP().maxValue) {
+            statistics.ATP().maxValue = val;
+        }
+        statistics.ATP().value = val;
 
         GameObject obj = Instantiate<GameObject>(death.gameObject);
         ParticleSystem system = obj.GetComponent<ParticleSystem>();

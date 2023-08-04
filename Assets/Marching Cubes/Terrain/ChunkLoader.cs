@@ -56,4 +56,15 @@ public class ChunkLoader : MonoBehaviour
         }
         return c;
     }
+
+    public List<Vector2Int> Coordinates() {
+        List<Vector2Int> c = new List<Vector2Int>();
+        Vector2 chunkCoords = terrain.ChunkCoords(this.transform.position.x, this.transform.position.z);
+        for (int x = (int) chunkCoords.x - this.loadingDistance; x <= (int) chunkCoords.x + this.loadingDistance; x++) {
+            for (int y = (int) chunkCoords.y - this.loadingDistance; y <= (int) chunkCoords.y + this.loadingDistance; y++) {
+                c.Add(new Vector2Int(x,y));
+            }
+        }
+        return c;
+    }
 }

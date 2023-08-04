@@ -22,12 +22,26 @@ public class Interaction : MonoBehaviour
 
     private Hoistable hoist;
 
-    // Start is called before the first frame update
     void Start() {
+        Statistics statistics = gameObject.GetComponent<Statistics>();
+        ProximitySpawn spawn = gameObject.GetComponent<ProximitySpawn>();
+
+        Save save = Save.Load();
+        if (save != null) {
+            this.gameObject.transform.position = save.player.position;
+            statistics.Instance(save.player.regenerables[0], save.player.regenerables[1], save.player.statistics[0]);
         
+            foreach (Save.Entity entity in save.entities) {
+                foreach (ProximitySpawn.Spawn s in spawn.spawns) {
+                    if (s.entity.gameObject.name == entity.name) {
+                        spawn.Instance(s.entity, entity.position, entity.statistics[0].value, entity.statistics[1].value, entity.statistics[2].value);
+                        break;
+                    }
+                }
+            }
+        }
     }
 
-    // Update is called once per frame
     void Update() {
         Collider[] collidingObjects = Physics.OverlapSphere(this.transform.position, reach, layer);
         float closestAngle = float.MaxValue;
@@ -61,6 +75,15 @@ public class Interaction : MonoBehaviour
     }
 
     void FixedUpdate() {
+        if (Input.GetKey(KeyCode.Tab)) {
+            GUI gui = gameObject.GetComponent<GUI>();
+            if (gui.current == gui.menu) {
+                gui.Close();
+            } else if (gui.current == null) {
+                gui.SetMenu(gui.menu);
+            }
+        }
+
         if (hoist != null) {
             Statistics statistics = GetComponent<Statistics>();
             Spawnable spawnable = hoist.gameObject.GetComponent<Spawnable>();
@@ -93,6 +116,61 @@ public class Interaction : MonoBehaviour
         }
     }
 
+    public void Evolve() {
+        Serialize();
+        SceneManager.LoadSceneAsync("Character");
+    }
+
+    public void Serialize() {
+        Statistics statistics = gameObject.GetComponent<Statistics>();
+        ProximitySpawn spawn = gameObject.GetComponent<ProximitySpawn>();
+        ChunkLoader chunkLoader = gameObject.GetComponent<ChunkLoader>();
+
+        Save save = new Save();
+
+        save.seed = chunkLoader.terrain.seed;
+
+        Save.Player player = new Save.Player();
+        player.position = this.gameObject.transform.position;
+        List<Statistics.Statistic> stats = new List<Statistics.Statistic>();
+        stats.Add(statistics.Speed());
+        List<Statistics.Regenerable> regenerables = new List<Statistics.Regenerable>();
+        regenerables.Add(statistics.Health());
+        regenerables.Add(statistics.ATP());
+        player.statistics = stats;
+        player.regenerables = regenerables;
+        save.player = player;
+
+        List<Save.Entity> entities = new List<Save.Entity>();
+        foreach (Spawnable spawnable in spawn.Track()) {
+            if (spawnable != null) {
+                Save.Entity entity = new Save.Entity();
+                entity.name = spawnable.gameObject.name;
+                entity.position = spawnable.gameObject.transform.position;
+                List<Statistics.Statistic> s = new List<Statistics.Statistic>();
+                s.Add(new Statistics.Statistic(spawnable.Scale()));
+                s.Add(new Statistics.Statistic(spawnable.Speed()));
+                s.Add(new Statistics.Statistic(spawnable.ATP()));
+                entity.statistics = s;
+                entities.Add(entity);
+            }
+        }
+        save.entities = entities;
+
+        List<Save.Wave> tiles = new List<Save.Wave>();
+        Dictionary<Vector2Int, Tile> sample = Terrain.WaveFunction.Sample(chunkLoader.terrain);
+        foreach (Vector2Int coord in sample.Keys) {
+            Tile tile = sample[coord];
+            Save.Wave wave = new Save.Wave();
+            wave.coord = coord;
+            wave.name = tile.name;
+            tiles.Add(wave);
+        }
+        save.tiles = tiles;
+
+        save.Serialize();
+    }
+
     public void Respawn() {
         Statistics statistics = gameObject.GetComponent<Statistics>();
         GUI gui = gameObject.GetComponent<GUI>();
@@ -103,6 +181,7 @@ public class Interaction : MonoBehaviour
         gameObject.transform.position = new Vector3(12, 12, 12);
 
         gui.Close();
+        gui.SetMenu(gui.loading);
     }
 
     public void Leave() {
